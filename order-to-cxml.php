@@ -94,41 +94,24 @@ register_deactivation_hook( __FILE__, array( $orderToCxml, 'deactivate') );
 
 // UNINSTALL
 
-
+/*
+    *   Some status hooks
 // Order completed
 function gon_woocommerce_order_status_completed( $order_id ) {
-   
     error_log( "Order complete for order $order_id", 0 );
-    
 }
 add_action( 'woocommerce_order_status_completed', 'gon_woocommerce_order_status_completed', 10, 1 );
-
-/**
- * Create temporary file in system temporary directory.
- *
- * @author Nabil Kadimi - https://kadimi.com
- *
- * @param  string $name    File name.
- * @param  string $content File contents.
- * @return string File path.
- */
-function wporg_k_tempnam( $name, $content ) {
-    $sep = DIRECTORY_SEPARATOR;
-    $file = $sep . trim( sys_get_temp_dir(), $sep ) . $sep . ltrim( $name, $sep );
-    file_put_contents( $file, $content );
-    register_shutdown_function( function() use( $file ) {
-        @unlink( $file );
-    } );
-    return $file;
-}
 
 // Payment completed
 function gon_woocommerce_payment_complete( $order_id ) {
     error_log( "Payment has been received for order $order_id", 0 );
 }
 add_action( 'woocommerce_payment_complete', 'gon_woocommerce_payment_complete', 10, 1 );
+*/
+
 
 // https://stackoverflow.com/questions/42530626/getting-order-data-after-successful-checkout-hook
+/*
 add_action('woocommerce_thankyou', 'bake_xml', 10, 1);
 function bake_xml( $order_id ) {
     if ( ! $order_id )
@@ -179,127 +162,19 @@ function bake_xml( $order_id ) {
         $order->save();
     }
 }
-
-
-
-
-////////////////
-
-/*
- * Add your custom bulk action in dropdown
- * @since 3.5.0
- */
-add_filter( 'bulk_actions-edit-shop_order', 'misha_register_bulk_action' ); // edit-shop_order is the screen ID of the orders page
- 
-function misha_register_bulk_action( $bulk_actions ) {
- 
-	$bulk_actions['mark_sent_to_crimson'] = 'Send to Crimson'; // <option value="mark_sent_to_crimson">Mark sent to Crimson</option>
-	return $bulk_actions;
- 
-}
- 
-/*
- * Bulk action handler
- * Make sure that "action name" in the hook is the same like the option value from the above function
- */
-add_action( 'admin_action_mark_sent_to_crimson', 'misha_bulk_process_custom_status' ); // admin_action_{action name}
- 
-function misha_bulk_process_custom_status() {
- 
-	// if an array with order IDs is not presented, exit the function
-	if( !isset( $_REQUEST['post'] ) && !is_array( $_REQUEST['post'] ) )
-		return;
- 
-	foreach( $_REQUEST['post'] as $order_id ) {
- 
-		$order = new WC_Order( $order_id );
-		$order_note = 'That\'s what happened by bulk edit:';
-		$order->update_status( 'sent-to-crimson', $order_note, true ); // "misha-shipment" is the order status name (do not use wc-misha-shipment)
- 
-	}
- 
-	// of course using add_query_arg() is not required, you can build your URL inline
-	$location = add_query_arg( array(
-    	'post_type' => 'shop_order',
-		'marked_sent-to-crimson' => 1, // just the $_GET variable for notices
-		'changed' => count( $_REQUEST['post'] ), // number of changed orders
-		'ids' => join( $_REQUEST['post'], ',' ),
-		'post_status' => 'all'
-	), 'edit.php' );
- 
-	wp_redirect( admin_url( $location ) );
-	exit;
- 
-}
- 
-/*
- * Notices
- */
-add_action('admin_notices', 'misha_custom_order_status_notices');
- 
-function misha_custom_order_status_notices() {
- 
-	global $pagenow, $typenow;
- 
-	if( $typenow == 'shop_order' 
-	 && $pagenow == 'edit.php'
-	 && isset( $_REQUEST['marked_sent-to-crimson'] )
-	 && $_REQUEST['marked_sent-to-crimson'] == 1
-	 && isset( $_REQUEST['changed'] ) ) {
- 
-		$message = sprintf( _n( 'Order status changed.', '%s order statuses changed.', $_REQUEST['changed'] ), number_format_i18n( $_REQUEST['changed'] ) );
-		echo "<div class=\"updated\"><p>{$message}</p></div>";
- 
-	}
- 
-}
-///////////////
+*/
 
 // only proceed if we are in admin mode!
 if ( ! is_admin() ) {
 	return;
 }
 
-function gon_foo( $order_id ){
-    echo "<div class=\"updated\"><p>$order_id skickad till print</p></div>";
-    error_log("---->>>>>> $order_id skickad till print", 0);
+function gon_debug($data) {
+    $output = $data;
+    if (is_array($output))
+        $output = implode(',', $output);
 
-    // TODO: Put the ftping here
-    /* set the FTP hostname */
-    $usr = "snobojohan";
-    $pwd = "ywVdRxYqUKM#ms4";
-    $host = "ftp.drivehq.com";
-    
-    // Create temporary file
-    // Basic
-    /*
-    $filename = 'hello.txt';
-    $content = 'Hello World!';
-    $local_file = wporg_k_tempnam( $filename, $content );
-    */
-    $filename = 'hello-' . wp_generate_password( 5, false ) . '.txt';
-    $content = 'Hello World!';
-    $file = wporg_k_tempnam( $filename, $content );
-
-    error_log("Local file: $local_file", 0);
-
-    $ftp_path = 'test.txt'; 
-    $conn_id = ftp_connect($host, 21) or die ("Cannot connect to host");      
-    ftp_pasv($conn_id, true); 
-    ftp_login($conn_id, $usr, $pwd) or die("Cannot login"); 
-    
-    // perform file upload 
-    ftp_chdir($conn_id, '/wwwhome'); 
-    $upload = ftp_put($conn_id, $ftp_path, $local_file, FTP_ASCII); 
-    if($upload) { $ftpsucc=1; } else { $ftpsucc=0; } 
-    
-    // check upload status: 
-    print (!$upload) ? 'Cannot upload' : 'Upload complete'; // TODO: Make it visible
-    print "\n"; 
-
-    // close the FTP stream 
-    ftp_close($conn_id); 
-   
+    echo "<script>console.log('Debug Objects: " . $output . "' );</script>";
 }
-
-add_action( 'woocommerce_order_status_sent-to-crimson', 'gon_foo', 10, 1 );
+require plugin_dir_path( __FILE__ ) . 'includes/gon-bulk-action.php';
+require plugin_dir_path( __FILE__ ) . 'includes/gon-ftp-it.php';
